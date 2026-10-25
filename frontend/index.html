@@ -2,23 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>HomeRecover</title>
+  <meta name="description" content="Turns a discharge summary into a daily recovery plan and warns families early.">
+  <meta name="theme-color" content="#0b7a75">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1a73e8">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body style="font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem;">
-  <h1>HomeRecover</h1>
-  <p>Scaffold only. Planned screens: summary scan, today's plan, daily check-in, family dose log, nearest help.</p>
-  <p id="status">Checking offline support...</p>
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js")
-        .then(() => { document.getElementById("status").textContent = "Offline support registered."; })
-        .catch(() => { document.getElementById("status").textContent = "Offline support unavailable."; });
-    } else {
-      document.getElementById("status").textContent = "This browser has no service worker support.";
-    }
-  </script>
+<body>
+  <div id="app" aria-live="polite"></div>
+  <noscript><p style="padding:1rem">HomeRecover needs JavaScript to run.</p></noscript>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

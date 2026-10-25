@@ -1,59 +1,64 @@
+import json
 import os
 import sys
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
+sys.path.insert(0, os.path.join(ROOT, "backend"))
 
-from app.trend import CheckIn, RedFlagLimits, assess, OK, WARN, RED_FLAG  # noqa: E402
+from app.trend import (  # noqa: E402
+    CheckIn, RedFlagLimits, assess, daily_checkins, OK, WARN, RED_FLAG,
+)
+
+with open(os.path.join(ROOT, "shared", "trend_cases.json"), encoding="utf-8") as f:
+    CASES = json.load(f)
 
 
-class TrendTests(unittest.TestCase):
-    def test_no_checkins_is_ok(self):
-        self.assertEqual(assess([]).status, OK)
+class SharedCases(unittest.TestCase):
+    """The same cases are run against frontend/js/trend.js, so both stay identical."""
 
-    def test_stable_recovery_is_ok(self):
-        data = [CheckIn(1, 4, 99.0), CheckIn(2, 3, 98.8), CheckIn(3, 2, 98.6)]
-        self.assertEqual(assess(data).status, OK)
+    def test_all_shared_cases(self):
+        for case in CASES:
+            with self.subTest(case["name"]):
+                checkins = [CheckIn(c["day"], c["pain"], c.get("fever_f"), c.get("wound_discharge", False))
+                            for c in case["checkins"]]
+                limits = RedFlagLimits(**case["limits"]) if "limits" in case else None
+                result = assess(checkins, limits)
+                self.assertEqual(result.status, case["status"])
+                self.assertEqual(sorted(result.codes), sorted(case["codes"]))
 
-    def test_pain_rising_three_days_warns_on_day_3(self):
-        data = [CheckIn(1, 1), CheckIn(2, 2), CheckIn(3, 3)]
-        result = assess(data)
-        self.assertEqual(result.status, WARN)
-        self.assertIn("Pain rising for 3 days", result.reasons[0])
 
-    def test_single_pain_3_is_not_a_warning(self):
-        self.assertEqual(assess([CheckIn(3, 3)]).status, OK)
+class DailyCheckins(unittest.TestCase):
+    def ev(self, date, pain, created, fever=None):
+        return {"created_at": created, "data": {"date": date, "pain": pain, "fever_f": fever}}
 
-    def test_pain_rise_must_be_on_consecutive_days(self):
-        data = [CheckIn(1, 1), CheckIn(3, 2), CheckIn(5, 3)]
-        self.assertEqual(assess(data).status, OK)
+    def test_latest_entry_of_the_day_wins(self):
+        events = [self.ev("2026-10-02", 5, "2026-10-02T08:00:00Z"),
+                  self.ev("2026-10-02", 3, "2026-10-02T20:00:00Z")]
+        days = daily_checkins(events, "2026-10-01")
+        self.assertEqual([(d.day, d.pain) for d in days], [(2, 3)])
 
-    def test_fever_at_limit_is_red_flag(self):
-        self.assertEqual(assess([CheckIn(2, 2, 101.0)]).status, RED_FLAG)
+    def test_days_before_discharge_and_bad_dates_are_ignored(self):
+        events = [self.ev("2026-09-30", 5, "a"), {"created_at": "b", "data": {"date": "nope"}},
+                  self.ev("2026-10-01", 2, "c")]
+        days = daily_checkins(events, "2026-10-01")
+        self.assertEqual([d.day for d in days], [1])
 
-    def test_custom_doctor_limit_is_respected(self):
-        limits = RedFlagLimits(fever_limit_f=99.5)
-        self.assertEqual(assess([CheckIn(2, 2, 99.6)], limits).status, RED_FLAG)
+    def test_bad_discharge_date_gives_nothing(self):
+        self.assertEqual(daily_checkins([self.ev("2026-10-01", 2, "a")], "oops"), [])
 
-    def test_wound_discharge_is_red_flag(self):
-        self.assertEqual(assess([CheckIn(4, 2, None, True)]).status, RED_FLAG)
+    def test_end_to_end_warns_on_day_3(self):
+        events = [self.ev(f"2026-10-0{d}", d, f"2026-10-0{d}T09:00:00Z") for d in (1, 2, 3)]
+        self.assertEqual(assess(daily_checkins(events, "2026-10-01")).status, WARN)
 
-    def test_high_pain_is_red_flag(self):
-        self.assertEqual(assess([CheckIn(2, 9)]).status, RED_FLAG)
 
-    def test_fever_rising_near_limit_warns(self):
-        data = [CheckIn(1, 2, 99.0), CheckIn(2, 2, 99.8)]
-        self.assertEqual(assess(data).status, WARN)
+class Basics(unittest.TestCase):
+    def test_status_constants(self):
+        self.assertEqual((OK, WARN, RED_FLAG), ("OK", "WARN", "RED_FLAG"))
 
-    def test_red_flag_outranks_warning(self):
-        data = [CheckIn(1, 1), CheckIn(2, 2), CheckIn(3, 3, 101.5)]
-        result = assess(data)
-        self.assertEqual(result.status, RED_FLAG)
-        self.assertGreaterEqual(len(result.reasons), 2)
-
-    def test_unsorted_input_is_handled(self):
-        data = [CheckIn(3, 3), CheckIn(1, 1), CheckIn(2, 2)]
-        self.assertEqual(assess(data).status, WARN)
+    def test_reasons_are_readable(self):
+        r = assess([CheckIn(1, 1), CheckIn(2, 2), CheckIn(3, 3)])
+        self.assertIn("Pain rising for 3 days", r.reasons[0])
 
 
 if __name__ == "__main__":

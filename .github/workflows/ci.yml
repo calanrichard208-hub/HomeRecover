@@ -1,13 +1,19 @@
 name: tests
 on: [push, pull_request]
 jobs:
-  trend-engine:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Run trend engine tests
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Backend tests (standard library only)
         working-directory: backend
         run: python -m unittest discover -s tests -v
+      - name: Frontend tests (trend rules, translations, two-phone sync)
+        working-directory: frontend
+        run: npm test

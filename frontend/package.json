@@ -1,0 +1,6 @@
+{
+  "name": "homerecover-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test tests/trend.test.mjs tests/i18n.test.mjs tests/store.test.mjs" }
+}
