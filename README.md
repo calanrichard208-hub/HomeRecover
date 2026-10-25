@@ -102,7 +102,7 @@ shared/trend_cases.json  test cases shared by Python and JavaScript
 
 ## Team
 
-[Add team name and members]
+TEAM- PHOENIX
 
 ## License
 
