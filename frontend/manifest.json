@@ -1,0 +1,9 @@
+{
+  "name": "HomeRecover",
+  "short_name": "HomeRecover",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a73e8",
+  "icons": []
+}

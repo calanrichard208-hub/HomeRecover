@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HomeRecover</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a73e8">
+</head>
+<body style="font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem;">
+  <h1>HomeRecover</h1>
+  <p>Scaffold only. Planned screens: summary scan, today's plan, daily check-in, family dose log, nearest help.</p>
+  <p id="status">Checking offline support...</p>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+        .then(() => { document.getElementById("status").textContent = "Offline support registered."; })
+        .catch(() => { document.getElementById("status").textContent = "Offline support unavailable."; });
+    } else {
+      document.getElementById("status").textContent = "This browser has no service worker support.";
+    }
+  </script>
+</body>
+</html>
